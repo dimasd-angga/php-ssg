@@ -1,0 +1,56 @@
+{
+    "name": "dimasd-angga/php-ssg",
+    "description": "Fast PHP static site generator. Write Markdown, get a website. No Node.js, no npm, no build tools. Just PHP 8.1+.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "static-site-generator",
+        "ssg",
+        "markdown",
+        "blog",
+        "php",
+        "cms",
+        "templating",
+        "frontmatter",
+        "website-builder",
+        "html-generator",
+        "no-nodejs",
+        "jamstack",
+        "blog-engine",
+        "site-generator"
+    ],
+    "homepage": "https://github.com/dimasd-angga/php-ssg",
+    "authors": [
+        {
+            "name": "Dimas D. Angga",
+            "email": "email.dimasdarfiangga@gmail.com",
+            "homepage": "https://github.com/dimasd-angga"
+        }
+    ],
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "PhpSsg\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PhpSsg\\Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/php-ssg"
+    ],
+    "scripts": {
+        "test": "phpunit"
+    },
+    "minimum-stability": "stable",
+    "config": {
+        "sort-packages": true
+    }
+}
