@@ -19,6 +19,8 @@ class Template
     private ?string $layoutFile = null;
     private array $layoutVars = [];
     private array $assetMap = [];
+    private array $sections = [];
+    private array $sectionStack = [];
 
     public function __construct(string $templateDir, array $globals = [])
     {
@@ -63,6 +65,26 @@ class Template
     public function asset(string $path): string
     {
         return $this->assetMap[$path] ?? $path;
+    }
+
+    public function section(string $name): void
+    {
+        $this->sectionStack[] = $name;
+        ob_start();
+    }
+
+    public function endSection(): void
+    {
+        if ($this->sectionStack === []) {
+            throw new \RuntimeException('endSection() called without matching section()');
+        }
+        $name = array_pop($this->sectionStack);
+        $this->sections[$name] = ob_get_clean();
+    }
+
+    public function yield(string $name, string $default = ''): string
+    {
+        return $this->sections[$name] ?? $default;
     }
 
     private function renderFile(string $name, array $vars): string
