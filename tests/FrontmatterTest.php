@@ -63,4 +63,12 @@ final class FrontmatterTest extends TestCase
         $this->assertSame([], $result['data']);
         $this->assertSame($raw, $result['content']);
     }
+
+    public function testUnterminatedFrontmatterDoesNotCrash(): void
+    {
+        $raw = "---\ntitle: oops\n\nBody without closing delimiter.";
+        $result = $this->fm->parse($raw);
+        $this->assertSame([], $result['data']);
+        $this->assertSame($raw, $result['content']);
+    }
 }

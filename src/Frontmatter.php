@@ -20,13 +20,15 @@ class Frontmatter
 {
     public function parse(string $raw): array
     {
-        if (!str_starts_with($raw, "---\n") && !str_starts_with($raw, "---\r\n")) {
+        $raw = str_replace(["\r\n", "\r"], "\n", $raw);
+
+        if (!str_starts_with($raw, "---\n")) {
             return ['data' => [], 'content' => $raw];
         }
 
-        $raw = str_replace(["\r\n", "\r"], "\n", $raw);
         $end = strpos($raw, "\n---", 4);
         if ($end === false) {
+            // unterminated frontmatter — treat whole file as content
             return ['data' => [], 'content' => $raw];
         }
 
@@ -36,8 +38,15 @@ class Frontmatter
             $content = substr($content, 1);
         }
 
+        try {
+            $data = $this->parseYaml($yaml);
+        } catch (\Throwable) {
+            // malformed YAML — surface as empty data rather than crashing the build
+            $data = [];
+        }
+
         return [
-            'data' => $this->parseYaml($yaml),
+            'data' => $data,
             'content' => $content,
         ];
     }
