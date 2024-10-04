@@ -46,13 +46,34 @@ class AssetPipeline
             $relative = substr($file->getPathname(), strlen($assetsDir) + 1);
             $relative = str_replace(DIRECTORY_SEPARATOR, '/', $relative);
 
-            $dest = $targetRoot . '/' . $relative;
+            $publicName = $relative;
+            if ($this->fingerprint && $this->shouldFingerprint($relative)) {
+                $hash = substr(md5_file($file->getPathname()), 0, 8);
+                $publicName = $this->insertHash($relative, $hash);
+            }
+
+            $dest = $targetRoot . '/' . $publicName;
             $this->ensureDir(dirname($dest));
             copy($file->getPathname(), $dest);
-            $this->map[$relative] = '/assets/' . $relative;
+            $this->map[$relative] = '/assets/' . $publicName;
         }
 
         return $this->map;
+    }
+
+    private function shouldFingerprint(string $relative): bool
+    {
+        $ext = strtolower(pathinfo($relative, PATHINFO_EXTENSION));
+        return in_array($ext, ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'woff', 'woff2'], true);
+    }
+
+    private function insertHash(string $path, string $hash): string
+    {
+        $info = pathinfo($path);
+        $dir = $info['dirname'] === '.' ? '' : $info['dirname'] . '/';
+        $base = $info['filename'];
+        $ext = isset($info['extension']) ? '.' . $info['extension'] : '';
+        return $dir . $base . '.' . $hash . $ext;
     }
 
     public function getMap(): array
