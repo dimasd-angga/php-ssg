@@ -1,0 +1,214 @@
+<?php
+
+declare(strict_types=1);
+
+namespace PhpSsg;
+
+/**
+ * Top-level build orchestrator.
+ *
+ * Reads ssg.config.php, scans content/, parses Markdown + frontmatter,
+ * applies templates, runs the asset pipeline, and writes the output to dist/.
+ *
+ * Public properties (pages, collections) are exposed for plugin hooks to
+ * inspect and mutate before the build finalizes.
+ */
+class Site
+{
+    public array $config;
+    public array $pages = [];
+    public array $collections = [];
+    public string $root;
+    public string $output;
+
+    private Frontmatter $frontmatter;
+    private Markdown $markdown;
+    private Template $template;
+    private AssetPipeline $assets;
+    private ContentScanner $scanner;
+    private array $pluginHooks = ['beforeBuild' => [], 'onPage' => [], 'afterBuild' => []];
+
+    public function __construct(string $root, array $config)
+    {
+        $this->root = rtrim($root, '/');
+        $this->config = $config;
+        $this->output = $this->root . '/' . ($config['build']['output'] ?? 'dist');
+
+        $this->frontmatter = new Frontmatter();
+        $this->markdown = new Markdown();
+        $this->scanner = new ContentScanner();
+        $this->assets = new AssetPipeline();
+        $this->assets->setFingerprintEnabled(($config['build']['fingerprint'] ?? true) !== false);
+
+        $globals = ['site' => (object) ($config['site'] ?? [])];
+        $this->template = new Template($this->root . '/templates', $globals);
+    }
+
+    public function build(): void
+    {
+        $this->cleanOutput();
+        $this->loadPlugins();
+        $this->runHooks('beforeBuild', [$this]);
+
+        $assetMap = $this->assets->build($this->root . '/assets', $this->output);
+        $this->template->setAssetMap($assetMap);
+
+        $this->loadPages();
+        $this->buildCollections();
+
+        foreach ($this->pages as $page) {
+            $page = $this->runOnPage($page);
+            $this->renderPage($page);
+        }
+
+        $this->runHooks('afterBuild', [$this->output]);
+    }
+
+    public function getTemplate(): Template
+    {
+        return $this->template;
+    }
+
+    public function getAssetMap(): array
+    {
+        return $this->assets->getMap();
+    }
+
+    private function loadPages(): void
+    {
+        $contentDir = $this->root . '/content';
+        $includeDrafts = (bool) ($this->config['build']['drafts'] ?? false);
+
+        foreach ($this->scanner->scan($contentDir) as $file) {
+            $raw = file_get_contents($file['path']);
+            $parsed = $this->frontmatter->parse($raw);
+            $data = $parsed['data'];
+            $data['slug'] = $file['slug'];
+            $data['url'] = $this->slugToUrl($file['slug']);
+
+            $page = new Page($data, $parsed['content'], $file['path']);
+            $page->content = $this->markdown->toHtml($parsed['content']);
+
+            if ($page->draft && !$includeDrafts) {
+                continue;
+            }
+
+            $this->pages[] = $page;
+        }
+    }
+
+    private function buildCollections(): void
+    {
+        foreach ($this->config['collections'] ?? [] as $name => $def) {
+            $path = $def['path'] ?? "content/{$name}";
+            $prefix = preg_replace('#^content/#', '', $path);
+            $items = array_values(array_filter(
+                $this->pages,
+                fn(Page $p) => str_starts_with($p->slug, $prefix . '/')
+            ));
+
+            $sortBy = $def['sortBy'] ?? 'date';
+            usort($items, function (Page $a, Page $b) use ($sortBy) {
+                if ($sortBy === 'date') {
+                    $ad = $a->date?->getTimestamp() ?? 0;
+                    $bd = $b->date?->getTimestamp() ?? 0;
+                    return $bd <=> $ad;
+                }
+                return strcmp((string) ($a->$sortBy ?? ''), (string) ($b->$sortBy ?? ''));
+            });
+
+            $defaultLayout = $def['layout'] ?? null;
+            if ($defaultLayout) {
+                foreach ($items as $item) {
+                    if ($item->layout === 'page') {
+                        $item->layout = $defaultLayout;
+                    }
+                }
+            }
+
+            $this->collections[$name] = $items;
+        }
+    }
+
+    private function renderPage(Page $page): void
+    {
+        $html = $this->template->render($page->layout, [
+            'page' => $page,
+            'site' => (object) ($this->config['site'] ?? []),
+            'collections' => $this->collections,
+        ]);
+
+        $outPath = $this->slugToOutputPath($page->slug);
+        $this->ensureDir(dirname($outPath));
+        file_put_contents($outPath, $html);
+    }
+
+    private function slugToUrl(string $slug): string
+    {
+        $base = $this->config['build']['baseUrl'] ?? '/';
+        $base = '/' . trim($base, '/');
+        $base = $base === '/' ? '' : $base;
+
+        if ($slug === 'index') return $base . '/';
+        return $base . '/' . $slug . '/';
+    }
+
+    private function slugToOutputPath(string $slug): string
+    {
+        if ($slug === 'index') {
+            return $this->output . '/index.html';
+        }
+        return $this->output . '/' . $slug . '/index.html';
+    }
+
+    private function cleanOutput(): void
+    {
+        if (!is_dir($this->output)) {
+            mkdir($this->output, 0755, true);
+            return;
+        }
+        $iter = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($this->output, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iter as $f) {
+            $f->isDir() ? rmdir($f->getPathname()) : unlink($f->getPathname());
+        }
+    }
+
+    private function ensureDir(string $dir): void
+    {
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+    }
+
+    private function loadPlugins(): void
+    {
+        foreach ($this->config['plugins'] ?? [] as $pluginPath) {
+            $abs = $this->root . '/' . $pluginPath;
+            if (!file_exists($abs)) continue;
+            $hooks = require $abs;
+            if (!is_array($hooks)) continue;
+            foreach ($hooks as $event => $cb) {
+                if (isset($this->pluginHooks[$event]) && is_callable($cb)) {
+                    $this->pluginHooks[$event][] = $cb;
+                }
+            }
+        }
+    }
+
+    private function runHooks(string $event, array $args): void
+    {
+        foreach ($this->pluginHooks[$event] ?? [] as $cb) {
+            $cb(...$args);
+        }
+    }
+
+    private function runOnPage(Page $page): Page
+    {
+        foreach ($this->pluginHooks['onPage'] as $cb) {
+            $result = $cb($page);
+            if ($result instanceof Page) $page = $result;
+        }
+        return $page;
+    }
+}
