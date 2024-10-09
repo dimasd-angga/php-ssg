@@ -126,8 +126,13 @@ class Site
                 }
             }
 
-            $this->collections[$name] = $items;
+            $this->collections[$name] = new Collection($name, $items, $def);
         }
+    }
+
+    public function getCollection(string $name): ?Collection
+    {
+        return $this->collections[$name] ?? null;
     }
 
     private function renderPage(Page $page): void
