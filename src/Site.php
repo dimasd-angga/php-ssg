@@ -89,6 +89,20 @@ class Site
             $page = new Page($data, $parsed['content'], $file['path']);
             $page->content = $this->markdown->toHtml($parsed['content']);
 
+            if ($page->date === null) {
+                $basename = basename($file['slug']);
+                if (preg_match('/^(\d{4}-\d{2}-\d{2})-(.*)$/', $basename, $dm)) {
+                    try {
+                        $page->date = new \DateTimeImmutable($dm[1]);
+                    } catch (\Throwable) {
+                        // ignore; date stays null
+                    }
+                    $cleanSlug = preg_replace('/[^\/]+$/', $dm[2], $page->slug);
+                    $page->slug = $cleanSlug;
+                    $page->url = $this->slugToUrl($cleanSlug);
+                }
+            }
+
             if ($page->draft && !$includeDrafts) {
                 continue;
             }
