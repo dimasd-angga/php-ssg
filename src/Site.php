@@ -21,11 +21,14 @@ class Site
     public string $root;
     public string $output;
 
+    public array $tagIndex = [];
+
     private Frontmatter $frontmatter;
     private Markdown $markdown;
     private Template $template;
     private AssetPipeline $assets;
     private ContentScanner $scanner;
+    private Taxonomy $taxonomy;
     private array $pluginHooks = ['beforeBuild' => [], 'onPage' => [], 'afterBuild' => []];
 
     public function __construct(string $root, array $config)
@@ -37,6 +40,7 @@ class Site
         $this->frontmatter = new Frontmatter();
         $this->markdown = new Markdown();
         $this->scanner = new ContentScanner();
+        $this->taxonomy = new Taxonomy();
         $this->assets = new AssetPipeline();
         $this->assets->setFingerprintEnabled(($config['build']['fingerprint'] ?? true) !== false);
 
@@ -55,13 +59,43 @@ class Site
 
         $this->loadPages();
         $this->buildCollections();
+        $this->tagIndex = $this->taxonomy->tagIndex($this->pages);
 
         foreach ($this->pages as $page) {
             $page = $this->runOnPage($page);
             $this->renderPage($page);
         }
 
+        $this->renderTagArchives();
+
         $this->runHooks('afterBuild', [$this->output]);
+    }
+
+    private function renderTagArchives(): void
+    {
+        $layout = 'tag';
+        if (!file_exists($this->root . '/templates/' . $layout . '.php')) {
+            return;
+        }
+        foreach ($this->tagIndex as $tag => $pages) {
+            $slug = $this->taxonomy->slugify($tag);
+            $vpage = new Page([
+                'slug' => 'tags/' . $slug,
+                'url' => $this->slugToUrl('tags/' . $slug),
+                'title' => 'Tag: ' . $tag,
+                'layout' => $layout,
+            ]);
+            $html = $this->template->render($layout, [
+                'page' => $vpage,
+                'tag' => $tag,
+                'posts' => $pages,
+                'site' => (object) ($this->config['site'] ?? []),
+                'collections' => $this->collections,
+            ]);
+            $out = $this->slugToOutputPath('tags/' . $slug);
+            $this->ensureDir(dirname($out));
+            file_put_contents($out, $html);
+        }
     }
 
     public function getTemplate(): Template
