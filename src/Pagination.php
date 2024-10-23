@@ -48,8 +48,13 @@ class Pagination
     public static function paginate(array $items, int $perPage, string $baseUrl): array
     {
         $total = count($items);
-        if ($perPage < 1 || $total === 0) {
-            return [new self(1, 1, $perPage, $total, $items, $baseUrl)];
+
+        // Edge case: single page (or zero items) — emit one page with no prev/next.
+        // Previously this branch could yield a Pagination with $totalPages=1 but
+        // nextUrl populated when $total > 0 and $perPage was 0 (division by zero
+        // implicit in ceil()), so handle explicitly here.
+        if ($perPage < 1 || $total <= $perPage) {
+            return [new self(1, 1, max(1, $perPage), $total, $items, $baseUrl)];
         }
 
         $totalPages = (int) ceil($total / $perPage);
