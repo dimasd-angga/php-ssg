@@ -67,8 +67,17 @@ class Site
         }
 
         $this->renderTagArchives();
+        $this->renderSitemap();
 
         $this->runHooks('afterBuild', [$this->output]);
+    }
+
+    private function renderSitemap(): void
+    {
+        $siteUrl = $this->config['site']['url'] ?? '';
+        if ($siteUrl === '') return;
+        $sitemap = new Sitemap();
+        file_put_contents($this->output . '/sitemap.xml', $sitemap->generate($this->pages, $siteUrl));
     }
 
     private function renderTagArchives(): void
