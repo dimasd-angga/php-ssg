@@ -68,8 +68,30 @@ class Site
 
         $this->renderTagArchives();
         $this->renderSitemap();
+        $this->renderRssFeeds();
 
         $this->runHooks('afterBuild', [$this->output]);
+    }
+
+    private function renderRssFeeds(): void
+    {
+        $siteUrl = $this->config['site']['url'] ?? '';
+        if ($siteUrl === '') return;
+
+        $rss = new Rss();
+        foreach ($this->config['collections'] ?? [] as $name => $def) {
+            if (!($def['rss'] ?? false)) continue;
+            $collection = $this->collections[$name] ?? null;
+            if ($collection === null) continue;
+            $posts = $collection->posts;
+            $collectionUrl = '/' . ltrim($def['path'] ?? "content/{$name}", 'content/') . '/';
+            $title = ucfirst($name);
+            $xml = $rss->generate($posts, $this->config['site'] ?? [], $collectionUrl, $title);
+
+            $feedPath = $this->output . rtrim($collectionUrl, '/') . '/feed.xml';
+            $this->ensureDir(dirname($feedPath));
+            file_put_contents($feedPath, $xml);
+        }
     }
 
     private function renderSitemap(): void
