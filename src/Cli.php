@@ -25,6 +25,9 @@ class Cli
                 $this->printHelp();
                 return 0;
 
+            case 'new':
+                return (new Commands\NewCommand())->run($args);
+
             default:
                 $this->err("Unknown command: {$command}");
                 $this->printHelp();
@@ -39,6 +42,7 @@ class Cli
         $this->out("Usage: php-ssg <command> [options]");
         $this->out("");
         $this->out("Commands:");
+        $this->out("  new <name>        Scaffold a new site");
         $this->out("  help              Show this help");
         $this->out("  --version         Show version");
     }
