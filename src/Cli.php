@@ -28,6 +28,12 @@ class Cli
             case 'new':
                 return (new Commands\NewCommand())->run($args);
 
+            case 'post':
+                return (new Commands\PostCommand())->run($args);
+
+            case 'page':
+                return (new Commands\PageCommand())->run($args);
+
             default:
                 $this->err("Unknown command: {$command}");
                 $this->printHelp();
@@ -43,6 +49,8 @@ class Cli
         $this->out("");
         $this->out("Commands:");
         $this->out("  new <name>        Scaffold a new site");
+        $this->out("  post <title>      Create a new dated blog post");
+        $this->out("  page <slug>       Create a new blank page");
         $this->out("  help              Show this help");
         $this->out("  --version         Show version");
     }
