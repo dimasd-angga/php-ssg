@@ -34,6 +34,12 @@ class Cli
             case 'page':
                 return (new Commands\PageCommand())->run($args);
 
+            case 'build':
+                return (new Commands\BuildCommand())->run($args);
+
+            case 'serve':
+                return (new Commands\ServeCommand())->run($args);
+
             default:
                 $this->err("Unknown command: {$command}");
                 $this->printHelp();
@@ -51,6 +57,9 @@ class Cli
         $this->out("  new <name>        Scaffold a new site");
         $this->out("  post <title>      Create a new dated blog post");
         $this->out("  page <slug>       Create a new blank page");
+        $this->out("  build [--drafts] [--minify] [--parallel]");
+        $this->out("                    Build site to dist/");
+        $this->out("  serve [--port=N]  Build and serve dist/ on localhost");
         $this->out("  help              Show this help");
         $this->out("  --version         Show version");
     }
