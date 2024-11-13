@@ -40,6 +40,9 @@ class Cli
             case 'serve':
                 return (new Commands\ServeCommand())->run($args);
 
+            case 'watch':
+                return (new Commands\WatchCommand())->run($args);
+
             default:
                 $this->err("Unknown command: {$command}");
                 $this->printHelp();
@@ -60,6 +63,7 @@ class Cli
         $this->out("  build [--drafts] [--minify] [--parallel]");
         $this->out("                    Build site to dist/");
         $this->out("  serve [--port=N]  Build and serve dist/ on localhost");
+        $this->out("  watch             Watch content/templates and rebuild");
         $this->out("  help              Show this help");
         $this->out("  --version         Show version");
     }
