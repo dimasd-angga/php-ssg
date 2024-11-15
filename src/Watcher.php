@@ -59,17 +59,34 @@ class Watcher
     {
         $snap = [];
         foreach ($this->dirs as $dir) {
+            // SELF_FIRST yields the directory entries themselves, but it does
+            // not always traverse into directories created mid-watch on some
+            // filesystems unless we re-instantiate the iterator each tick.
+            // We do — takeSnapshot() is called once per poll interval.
             $iter = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+                new \RecursiveDirectoryIterator(
+                    $dir,
+                    \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS
+                ),
                 \RecursiveIteratorIterator::SELF_FIRST
             );
             foreach ($iter as $f) {
                 /** @var \SplFileInfo $f */
                 if (!$f->isFile()) continue;
+                if ($this->shouldIgnore($f->getPathname())) continue;
                 $snap[$f->getPathname()] = $f->getMTime();
             }
         }
         return $snap;
+    }
+
+    private function shouldIgnore(string $path): bool
+    {
+        $name = basename($path);
+        if ($name === '.DS_Store') return true;
+        if (str_starts_with($name, '.')) return true;
+        if (str_ends_with($name, '~')) return true;
+        return false;
     }
 
     private function diff(array $old, array $new): array
