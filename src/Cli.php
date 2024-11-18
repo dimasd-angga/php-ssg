@@ -43,6 +43,9 @@ class Cli
             case 'watch':
                 return (new Commands\WatchCommand())->run($args);
 
+            case 'validate':
+                return (new Commands\ValidateCommand())->run($args);
+
             default:
                 $this->err("Unknown command: {$command}");
                 $this->printHelp();
