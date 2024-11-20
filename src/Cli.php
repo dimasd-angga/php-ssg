@@ -46,6 +46,9 @@ class Cli
             case 'validate':
                 return (new Commands\ValidateCommand())->run($args);
 
+            case 'clean':
+                return (new Commands\CleanCommand())->run($args);
+
             default:
                 $this->err("Unknown command: {$command}");
                 $this->printHelp();
