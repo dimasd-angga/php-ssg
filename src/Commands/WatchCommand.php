@@ -32,6 +32,9 @@ class WatchCommand
         ], 'is_dir');
 
         $config = require $configPath;
+        foreach ($args as $arg) {
+            if ($arg === '--drafts') $config['build']['drafts'] = true;
+        }
 
         echo "Initial build...\n";
         $this->rebuild($root, $config);
