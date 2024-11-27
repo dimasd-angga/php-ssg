@@ -46,6 +46,22 @@ Templates are plain PHP files. No new syntax. Your `templates/post.php`:
 </article>
 ```
 
+## CLI commands
+
+```bash
+php-ssg new <name>          # Scaffold a new site
+php-ssg build               # Build for production (output → dist/)
+php-ssg build --drafts      # Include draft posts in the build
+php-ssg serve               # Build and serve dist/ on http://localhost:8000
+php-ssg serve --port=3000   # Custom port
+php-ssg watch               # Rebuild on file changes (no server)
+php-ssg page <slug>         # Create a new blank page in content/
+php-ssg post <title>        # Create a new date-prefixed blog post
+php-ssg validate            # Check config and templates for errors
+php-ssg clean               # Delete dist/ directory
+php-ssg --version           # Show version
+```
+
 ## License
 
 MIT
