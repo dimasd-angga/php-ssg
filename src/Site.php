@@ -29,7 +29,7 @@ class Site
     private AssetPipeline $assets;
     private ContentScanner $scanner;
     private Taxonomy $taxonomy;
-    private array $pluginHooks = ['beforeBuild' => [], 'onPage' => [], 'afterBuild' => []];
+    private PluginManager $plugins;
 
     public function __construct(string $root, array $config)
     {
@@ -41,6 +41,7 @@ class Site
         $this->markdown = new Markdown();
         $this->scanner = new ContentScanner();
         $this->taxonomy = new Taxonomy();
+        $this->plugins = new PluginManager();
         $this->assets = new AssetPipeline();
         $this->assets->setFingerprintEnabled(($config['build']['fingerprint'] ?? true) !== false);
 
@@ -270,31 +271,17 @@ class Site
     private function loadPlugins(): void
     {
         foreach ($this->config['plugins'] ?? [] as $pluginPath) {
-            $abs = $this->root . '/' . $pluginPath;
-            if (!file_exists($abs)) continue;
-            $hooks = require $abs;
-            if (!is_array($hooks)) continue;
-            foreach ($hooks as $event => $cb) {
-                if (isset($this->pluginHooks[$event]) && is_callable($cb)) {
-                    $this->pluginHooks[$event][] = $cb;
-                }
-            }
+            $this->plugins->loadFile($this->root . '/' . $pluginPath);
         }
     }
 
     private function runHooks(string $event, array $args): void
     {
-        foreach ($this->pluginHooks[$event] ?? [] as $cb) {
-            $cb(...$args);
-        }
+        $this->plugins->fire($event, $args);
     }
 
     private function runOnPage(Page $page): Page
     {
-        foreach ($this->pluginHooks['onPage'] as $cb) {
-            $result = $cb($page);
-            if ($result instanceof Page) $page = $result;
-        }
-        return $page;
+        return $this->plugins->transformPage($page);
     }
 }
