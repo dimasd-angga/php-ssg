@@ -1,0 +1,20 @@
+# netlify.toml — drop into your repo root to deploy on Netlify.
+#
+# Netlify provisions a Linux build container with PHP available; we install
+# php-ssg via Composer and run a production build. The `dist/` directory is
+# published.
+
+[build]
+  command   = "composer global require dimasd-angga/php-ssg && $(composer global config bin-dir --absolute)/php-ssg build"
+  publish   = "dist"
+
+[build.environment]
+  PHP_VERSION = "8.2"
+
+# Pretty URLs work out of the box because php-ssg emits index.html under
+# each page slug. If you ever need redirects, define them below.
+#
+# [[redirects]]
+#   from = "/old-path"
+#   to = "/new-path"
+#   status = 301
