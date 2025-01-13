@@ -225,6 +225,10 @@ class Site
             'collections' => $this->collections,
         ]);
 
+        if ($this->config['build']['minify'] ?? false) {
+            $html = (new Minifier())->minify($html);
+        }
+
         $outPath = $this->slugToOutputPath($page->slug);
         $this->ensureDir(dirname($outPath));
         file_put_contents($outPath, $html);
