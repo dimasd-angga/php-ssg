@@ -46,6 +46,21 @@ Templates are plain PHP files. No new syntax. Your `templates/post.php`:
 </article>
 ```
 
+## Syntax highlighting
+
+Fenced code blocks with a language hint emit `<pre><code class="language-XX">`.
+You can highlight client-side by adding Prism.js or highlight.js to your base
+template:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1/themes/prism.min.css">
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js"></script>
+```
+
+For server-side highlighting with zero client JS, see `src/SyntaxHighlight.php`
+for an example plugin that integrates `scrivo/highlight.php`.
+
 ## CLI commands
 
 ```bash
