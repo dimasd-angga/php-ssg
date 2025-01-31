@@ -1,5 +1,11 @@
 # php-ssg
 
+[![PHP Version](https://img.shields.io/badge/PHP-8.1+-777BB4?style=flat&logo=php)](https://php.net)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Packagist](https://img.shields.io/packagist/v/dimasd-angga/php-ssg.svg)](https://packagist.org/packages/dimasd-angga/php-ssg)
+[![Tests](https://img.shields.io/github/actions/workflow/status/dimasd-angga/php-ssg/ci.yml?label=tests)](https://github.com/dimasd-angga/php-ssg/actions)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 A fast, zero-dependency PHP static site generator. Write Markdown, get a production-ready website. No Node.js, no build tools, no config hell.
 
 ## Quick start
