@@ -59,4 +59,27 @@ class I18n
         if ($this->defaultAtRoot && $locale === $this->defaultLocale) return '';
         return '/' . $locale;
     }
+
+    /**
+     * Given a page in one locale, build the URL for the equivalent page in
+     * another locale (assuming it exists). Used by templates to render
+     * <a href="..."> language switchers.
+     */
+    public function alternateUrl(string $slug, string $fromLocale, string $toLocale): string
+    {
+        $relative = $this->stripLocale($slug, $fromLocale);
+        $prefix = $this->urlPrefix($toLocale);
+        if ($relative === '' || $relative === 'index') {
+            return $prefix === '' ? '/' : $prefix . '/';
+        }
+        return $prefix . '/' . $relative . '/';
+    }
+
+    private function stripLocale(string $slug, string $locale): string
+    {
+        if (str_starts_with($slug, $locale . '/')) {
+            return substr($slug, strlen($locale) + 1);
+        }
+        return $slug;
+    }
 }
