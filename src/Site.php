@@ -23,6 +23,9 @@ class Site
 
     public array $tagIndex = [];
 
+    /** @var array<string, array{mtime: int, html: string, data: array}> */
+    private array $markdownCache = [];
+
     private Frontmatter $frontmatter;
     private Markdown $markdown;
     private Template $template;
@@ -146,14 +149,30 @@ class Site
         $includeDrafts = (bool) ($this->config['build']['drafts'] ?? false);
 
         foreach ($this->scanner->scan($contentDir) as $file) {
-            $raw = file_get_contents($file['path']);
-            $parsed = $this->frontmatter->parse($raw);
+            $mtime = filemtime($file['path']);
+            $cached = $this->markdownCache[$file['path']] ?? null;
+
+            if ($cached !== null && $cached['mtime'] === $mtime) {
+                $parsed = ['data' => $cached['data'], 'content' => $cached['raw']];
+                $html = $cached['html'];
+            } else {
+                $raw = file_get_contents($file['path']);
+                $parsed = $this->frontmatter->parse($raw);
+                $html = $this->markdown->toHtml($parsed['content']);
+                $this->markdownCache[$file['path']] = [
+                    'mtime' => $mtime,
+                    'html'  => $html,
+                    'data'  => $parsed['data'],
+                    'raw'   => $parsed['content'],
+                ];
+            }
+
             $data = $parsed['data'];
             $data['slug'] = $file['slug'];
             $data['url'] = $this->slugToUrl($file['slug']);
 
             $page = new Page($data, $parsed['content'], $file['path']);
-            $page->content = $this->markdown->toHtml($parsed['content']);
+            $page->content = $html;
 
             $basename = basename($file['slug']);
             if (preg_match('/^(\d{4}-\d{2}-\d{2})-(.*)$/', $basename, $dm)) {
