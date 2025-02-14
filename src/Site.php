@@ -65,9 +65,33 @@ class Site
         $this->buildCollections();
         $this->tagIndex = $this->taxonomy->tagIndex($this->pages);
 
-        foreach ($this->pages as $page) {
-            $page = $this->runOnPage($page);
-            $this->renderPage($page);
+        $parallel = $this->config['build']['parallel'] ?? false;
+        if ($parallel && count($this->pages) > 20) {
+            $jobs = [];
+            foreach ($this->pages as $page) {
+                $page = $this->runOnPage($page);
+                $jobs[] = [
+                    'outPath' => $this->slugToOutputPath($page->slug),
+                    'render' => function () use ($page) {
+                        $html = $this->template->render($page->layout, [
+                            'page' => $page,
+                            'site' => (object) ($this->config['site'] ?? []),
+                            'collections' => $this->collections,
+                        ]);
+                        if ($this->config['build']['minify'] ?? false) {
+                            $html = (new Minifier())->minify($html);
+                        }
+                        $this->ensureDir(dirname($this->slugToOutputPath($page->slug)));
+                        return $html;
+                    },
+                ];
+            }
+            (new ParallelRenderer())->render($jobs);
+        } else {
+            foreach ($this->pages as $page) {
+                $page = $this->runOnPage($page);
+                $this->renderPage($page);
+            }
         }
 
         $this->renderTagArchives();
