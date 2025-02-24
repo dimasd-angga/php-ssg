@@ -6,7 +6,7 @@ namespace PhpSsg;
 
 class Cli
 {
-    private const VERSION = '0.2.0';
+    private const VERSION = '0.3.0';
 
     public function run(array $argv): int
     {
