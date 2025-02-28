@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.0 — 2025-02-28
+
+### Added
+- Multilingual support via locale-prefixed content directories (`content/en/`, `content/fr/`)
+- Locale switcher helper (`I18n::alternateUrl()`) for templates
+- `--parallel` flag using PHP 8.1+ Fibers to interleave page I/O
+- `--minify` flag for HTML output minification (safe-by-default; preserves `<pre>`, `<code>`, etc.)
+- Markdown parse cache for fast watch-mode rebuilds
+- Syntax highlighting integration helper (`SyntaxHighlight` + plugin pattern)
+- GitHub Pages and Netlify deployment examples (`examples/deploy/`)
+- Build-time benchmark suite
+- Roadmap document
+
+### Fixed
+- Fiber renderer no longer deadlocks if a render callback throws before suspend
+- Minifier preserves whitespace inside `<pre>`, `<code>`, `<textarea>`, `<script>`, `<style>`
+
 ## 0.2.0 — 2024-12-27
 
 ### Added
